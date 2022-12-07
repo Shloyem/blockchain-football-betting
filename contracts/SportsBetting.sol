@@ -18,28 +18,24 @@ struct Match {
     uint id;
     string teamA;
     string teamB;
-    WinningTeam winner;
+    // WinningTeam winner;
 }
 
 struct Bet {
     address creator;
-    uint8 optionId;
+    WinningTeam optionId;
+    //uint256 matchId // depends on how it is stored, with matchId or not
     // amount is 0.1eth for all
     // paid
 }
 
 contract SportsBetting {
     mapping(uint256 => Match) public idToMatches; // id?
-    mapping(uint256 => Bet) public matchIdToPendingBets;
+    mapping(uint256 => Bet) public matchIdToPendingBets; // change this to store all bets
+    // add user balances
 
-    event BetCreated(address creator, uint256 matchId, uint256 amount);
-    event BetFinished(
-        address better,
-        bool won,
-        uint256 matchId,
-        uint256 amountPaid
-    );
-
+    event BetCreated(address creator, uint256 matchId, WinningTeam winner);
+    event BetFinished(address creator, uint256 matchId, bool won);
     event matchAdded(uint256 matchId, string teamA, string teamB);
     event matchRemoved(
         uint256 matchId,
@@ -47,8 +43,6 @@ contract SportsBetting {
         string teamB,
         WinningTeam winner
     );
-
-    // maybe event(match) finished?
 
     constructor() payable {}
 
@@ -63,8 +57,16 @@ contract SportsBetting {
         }
     }
 
-    function createBet(uint id, uint8 winnerSelection) public payable {
+    function createBet(uint256 matchId, WinningTeam winnerSelection)
+        public
+        payable
+    {
+        // add require match exists
         require(msg.value == 0.1 ether);
+        // change here to add many bets to each game
+        //matchIdToPendingBets[matchId] = Bet(msg.sender, winnerSelection);
+
+        emit BetCreated(msg.sender, matchId, winnerSelection);
     }
 
     function getResults(Match[] calldata _matchesInfo) public {
