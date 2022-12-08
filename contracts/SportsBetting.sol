@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 enum WinnerSelection {
     DRAW,
@@ -21,7 +22,7 @@ struct Bet {
     WinnerSelection winnerSelection;
 }
 
-contract SportsBetting is Ownable {
+contract SportsBetting is Ownable, ReentrancyGuard {
     uint256 constant BET_COST = 0.1 ether;
     uint256 constant BET_REWARD = 0.2 ether;
 
@@ -114,5 +115,10 @@ contract SportsBetting is Ownable {
         }
     }
 
-    function userWithdraw() public {}
+    function userWithdraw(uint256 _amount) public nonReentrant returns (bool) {
+        require(balances[msg.sender] >= _amount);
+        balances[msg.sender] -= _amount;
+        (bool sent, ) = payable(msg.sender).call{value: _amount}("");
+        return sent;
+    }
 }

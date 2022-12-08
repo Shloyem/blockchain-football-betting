@@ -86,27 +86,44 @@ describe("SportsBetting", function () {
       await sportsBetting.createBet(100, WinnerSelection.TEAM_A, { value: BET_COST });
 
       let res = await sportsBetting.matchIdToPendingBets(100, 0);
-
       console.log("With id 100:");
       console.log(res);
 
       let res1 = await sportsBetting.getAllActiveMatches();
       console.log("Matches Array:");
-      console.log(res1)
+      console.log(res1);
 
       let balance = await sportsBetting.balances(owner.address);
       console.log("balance:");
-      console.log(balance)
+      console.log(balance);
 
       await sportsBetting.finishMatch(100, WinnerSelection.TEAM_A);
 
       res1 = await sportsBetting.getAllActiveMatches();
       console.log("Matches Array:");
-      console.log(res1)
+      console.log(res1);
 
       balance = await sportsBetting.balances(owner.address);
-      console.log("balance:");
-      console.log(balance)
+      console.log("owner Balance in betting contract before:");
+      console.log(balance);
+
+      let ethBalance = await ethers.provider.getBalance(sportsBetting.address);
+      console.log("Betting contract balance before %s", ethBalance);
+
+      ethBalance = await ethers.provider.getBalance(owner.address);
+      console.log("Owner contract balance before %s", ethBalance);
+
+      await sportsBetting.userWithdraw(BET_REWARD);
+
+      balance = await sportsBetting.balances(owner.address);
+      console.log("owner Balance in betting contract after");
+      console.log(balance);
+
+      ethBalance = await ethers.provider.getBalance(sportsBetting.address);
+      console.log("Betting contract balance after %s", ethBalance);
+
+      ethBalance = await ethers.provider.getBalance(owner.address);
+      console.log("Owner contract balance after %s", ethBalance);
     });
   });
 });
