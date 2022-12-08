@@ -11,7 +11,7 @@ enum WinnerSelection {
 }
 
 struct Match {
-    uint id;
+    uint256 id;
     string teamA;
     string teamB;
 }
@@ -42,7 +42,7 @@ contract SportsBetting is Ownable {
 
     constructor() payable {}
 
-    function fetchNewMatch(Match calldata _newMatch) public {
+    function createMatch(Match calldata _newMatch) public {
         require(
             !isMatchIdActive[_newMatch.id] &&
                 !isMatchIdFullfilled[_newMatch.id],
