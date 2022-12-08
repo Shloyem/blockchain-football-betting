@@ -1,14 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-// import "openzeppelin-contracts/token/ERC721/ERC721.sol";
-// import "openzeppelin-contracts/access/Ownable.sol";
-// import "openzeppelin-contracts/utils/Counters.sol";
-// import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-// import "@openzeppelin/contracts/access/Ownable.sol";
-// import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
 
-enum WinningTeam {
+enum WinnerSelection {
     DRAW,
     TEAM_A,
     TEAM_B
@@ -18,64 +14,66 @@ struct Match {
     uint id;
     string teamA;
     string teamB;
-    // WinningTeam winner;
 }
 
 struct Bet {
     address creator;
-    WinningTeam optionId;
-    //uint256 matchId // depends on how it is stored, with matchId or not
-    // amount is 0.1eth for all
-    // paid
+    WinnerSelection winnerSelection;
 }
 
-contract SportsBetting {
-    mapping(uint256 => Match) public idToMatches; // id?
-    mapping(uint256 => Bet) public matchIdToPendingBets; // change this to store all bets
-    // add user balances
+contract SportsBetting is Ownable {
+    Match[] public activeMatches;
+    mapping(uint256 => bool) isMatchIdActive;
+    mapping(uint256 => bool) isMatchIdFullfilled;
 
-    event BetCreated(address creator, uint256 matchId, WinningTeam winner);
+    mapping(uint256 => Bet[]) public matchIdToPendingBets; // change this to store all bets
+
+    mapping(address => uint256) public balances;
+
+    event BetCreated(address creator, uint256 matchId, WinnerSelection winner);
     event BetFinished(address creator, uint256 matchId, bool won);
     event matchAdded(uint256 matchId, string teamA, string teamB);
-    event matchRemoved(
+    event matchFinished(
         uint256 matchId,
         string teamA,
         string teamB,
-        WinningTeam winner
+        WinnerSelection winner
     );
 
     constructor() payable {}
 
-    function getNewMatch(Match calldata _newMatch) public {
-        //adding if doesnt exist
-        if (idToMatches[_newMatch.id].id == 0) {
-            idToMatches[_newMatch.id].id = _newMatch.id;
-            idToMatches[_newMatch.id].teamA = _newMatch.teamA;
-            idToMatches[_newMatch.id].teamB = _newMatch.teamB;
+    function fetchNewMatch(Match calldata _newMatch) public {
+        require(
+            !isMatchIdActive[_newMatch.id] &&
+                !isMatchIdFullfilled[_newMatch.id],
+            "Match already exists or fullfilled"
+        );
 
-            emit matchAdded(_newMatch.id, _newMatch.teamA, _newMatch.teamB);
-        }
+        activeMatches.push(_newMatch);
+        isMatchIdActive[_newMatch.id] = true;
+
+        emit matchAdded(_newMatch.id, _newMatch.teamA, _newMatch.teamB);
     }
 
-    function createBet(uint256 matchId, WinningTeam winnerSelection)
+    function createBet(uint256 matchId, WinnerSelection winnerSelection)
         public
         payable
     {
-        // add require match exists
-        require(msg.value == 0.1 ether);
-        // change here to add many bets to each game
-        //matchIdToPendingBets[matchId] = Bet(msg.sender, winnerSelection);
+        require(isMatchIdActive[matchId], "Wrong match ID");
+        require(msg.value == 0.1 ether, "Send 0.1 eth to participate");
+
+        matchIdToPendingBets[matchId].push(Bet(msg.sender, winnerSelection));
 
         emit BetCreated(msg.sender, matchId, winnerSelection);
     }
 
-    function getResults(Match[] calldata _matchesInfo) public {
-        // assume we get finished games
-    }
+    function getAllActiveMatches() public view returns (Match[] memory) {
+        Match[] memory matches = new Match[](activeMatches.length);
+        for (uint i = 0; i < activeMatches.length; i++) {
+            Match storage match1 = activeMatches[i];
+            matches[i] = match1;
+        }
 
-    function payToWin() public payable {
-        // accept ether
-        //require(msg.value == 0.1 ether);
-        //payable(msg.sender).call{value: 2 ether}("");
+        return matches;
     }
 }
