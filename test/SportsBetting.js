@@ -7,6 +7,13 @@ const { expect } = require("chai");
 require('chai').use(require('chai-as-promised')).should();
 const { Web3 } = require('web3');
 const { isAddress } = require("ethers/lib/utils");
+const WinnerSelection = {
+  DRAW: 0,
+  TEAM_A: 1,
+  TEAM_B: 2
+}
+const BET_COST = ethers.utils.parseEther("0.1");;
+const BET_REWARD = ethers.utils.parseEther("0.2");;
 
 describe("SportsBetting", function () {
   // We define a fixture to reuse the same setup in every test.
@@ -62,9 +69,44 @@ describe("SportsBetting", function () {
 
   describe("Bet creation", function () {
     it("Should create a bet successfully", async function () {
+
     });
 
     it("Should emit bet created event", async function () {
+    });
+
+    it("Should fail when wrong amount of eth sent", async function () {
+    });
+  });
+
+  describe("Match remove creation", function () {
+    it("Should finish match", async function () {
+      const { sportsBetting, owner } = await loadFixture(deploySportsBettingFixture);
+      await sportsBetting.createMatch([100, 'Croatia', 'Brazil']);
+      await sportsBetting.createBet(100, WinnerSelection.TEAM_A, { value: BET_COST });
+
+      let res = await sportsBetting.matchIdToPendingBets(100, 0);
+
+      console.log("With id 100:");
+      console.log(res);
+
+      let res1 = await sportsBetting.getAllActiveMatches();
+      console.log("Matches Array:");
+      console.log(res1)
+
+      let balance = await sportsBetting.balances(owner.address);
+      console.log("balance:");
+      console.log(balance)
+
+      await sportsBetting.finishMatch(100, WinnerSelection.TEAM_A);
+
+      res1 = await sportsBetting.getAllActiveMatches();
+      console.log("Matches Array:");
+      console.log(res1)
+
+      balance = await sportsBetting.balances(owner.address);
+      console.log("balance:");
+      console.log(balance)
     });
   });
 });

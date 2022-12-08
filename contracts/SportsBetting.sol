@@ -22,23 +22,19 @@ struct Bet {
 }
 
 contract SportsBetting is Ownable {
+    uint256 constant BET_COST = 0.1 ether;
+    uint256 constant BET_REWARD = 0.2 ether;
+
     Match[] public activeMatches;
     mapping(uint256 => bool) isMatchIdActive;
     mapping(uint256 => bool) isMatchIdFullfilled;
-
-    mapping(uint256 => Bet[]) public matchIdToPendingBets; // change this to store all bets
-
+    mapping(uint256 => Bet[]) public matchIdToPendingBets;
     mapping(address => uint256) public balances;
 
     event BetCreated(address creator, uint256 matchId, WinnerSelection winner);
     event BetFinished(address creator, uint256 matchId, bool won);
-    event matchAdded(uint256 matchId, string teamA, string teamB);
-    event matchFinished(
-        uint256 matchId,
-        string teamA,
-        string teamB,
-        WinnerSelection winner
-    );
+    event MatchCreated(uint256 matchId, string teamA, string teamB);
+    event MatchFinished(uint256 matchId, WinnerSelection winner);
 
     constructor() payable {}
 
@@ -52,7 +48,7 @@ contract SportsBetting is Ownable {
         activeMatches.push(_newMatch);
         isMatchIdActive[_newMatch.id] = true;
 
-        emit matchAdded(_newMatch.id, _newMatch.teamA, _newMatch.teamB);
+        emit MatchCreated(_newMatch.id, _newMatch.teamA, _newMatch.teamB);
     }
 
     function createBet(uint256 matchId, WinnerSelection winnerSelection)
@@ -60,7 +56,7 @@ contract SportsBetting is Ownable {
         payable
     {
         require(isMatchIdActive[matchId], "Wrong match ID");
-        require(msg.value == 0.1 ether, "Send 0.1 eth to participate");
+        require(msg.value == BET_COST, "Send eth amount of bet cost to bet");
 
         matchIdToPendingBets[matchId].push(Bet(msg.sender, winnerSelection));
 
@@ -76,4 +72,47 @@ contract SportsBetting is Ownable {
 
         return matches;
     }
+
+    function finishMatch(uint256 _matchId, WinnerSelection _winner) public {
+        require(isMatchIdActive[_matchId], "Match not active");
+        require(!isMatchIdFullfilled[_matchId], "Match already fullfilled");
+
+        isMatchIdActive[_matchId] = false;
+        isMatchIdFullfilled[_matchId] = true;
+
+        emit MatchFinished(_matchId, _winner);
+
+        // add winning bets to users balances
+        for (uint i = 0; i < matchIdToPendingBets[_matchId].length; i++) {
+            bool betWon = matchIdToPendingBets[_matchId][i].winnerSelection ==
+                _winner;
+            if (betWon) {
+                balances[
+                    matchIdToPendingBets[_matchId][i].creator
+                ] += BET_REWARD;
+            }
+
+            emit BetFinished(
+                matchIdToPendingBets[_matchId][i].creator,
+                _matchId,
+                betWon
+            );
+        }
+
+        delete matchIdToPendingBets[_matchId];
+        removeActiveMatchArray(_matchId);
+        // remove from active matches array
+    }
+
+    function removeActiveMatchArray(uint256 _id) private {
+        for (uint i = 0; i < activeMatches.length; i++) {
+            if (activeMatches[i].id == _id) {
+                activeMatches[i] = activeMatches[activeMatches.length - 1];
+                activeMatches.pop();
+                return;
+            }
+        }
+    }
+
+    function userWithdraw() public {}
 }
